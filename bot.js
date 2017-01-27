@@ -125,11 +125,22 @@ app.post('/webhook', function (req, res) {
 
       // Iterate over each messaging event
       entry.messaging.forEach(function(event) {
+
+
         if (event.message) {
-          receivedMessage(event);
+
+          if (event.message.quick_reply){
+              receivedQuickReply(event);
+          }
+
+          else {
+            receivedMessage(event);
+        }
         } else if (event.postback) {
           receivedPostback(event);   
-        } else {
+        } 
+
+         else {
           console.log("Webhook received unknown event: ", event);
         }
       });
@@ -189,6 +200,26 @@ function receivedMessage(event) {
   }
 }
 
+
+function receivedQuickReply(event){
+  var senderID = event.sender.id;
+  var recipientID = event.recipient.id;
+  var timeOfPostback = event.timestamp;
+
+//{"quick_reply":{"payload":"c_id_11"},"mid":"mid.1485549458046:2a923e1978","seq":53123,"text":"Workshop"}
+
+  var payload = event.message.quick_reply.payload.toString();
+
+
+  // console.log("Received postback for user %d and page %d with payload '%s' " +   "at %d", senderID, recipientID, payload, timeOfPostback);
+
+  if (codedInstructionRegexp.test(payload)){
+    console.log('quick reply was encoded instruction!');
+    instructionDecoder(payload, senderID);
+  }
+
+}
+
 function receivedPostback(event) {
   var senderID = event.sender.id;
   var recipientID = event.recipient.id;
@@ -198,7 +229,7 @@ function receivedPostback(event) {
   // button for Structured Messages. 
   var payload = event.postback.payload;
 
-  //console.log("Received postback for user %d and page %d with payload '%s' " +   "at %d", senderID, recipientID, payload, timeOfPostback);
+  console.log("Received postback for user %d and page %d with payload '%s' " +   "at %d", senderID, recipientID, payload, timeOfPostback);
 
   if (codedInstructionRegexp.test(payload)){
     //console.log('the payload was an instruction!')
@@ -227,6 +258,41 @@ function sendTextMessage(recipientId, messageText) {
 }
 
 
+function sendGenreBubbles(recipientId, genres){
+
+  let arrayOfGenreBubbles = [];
+
+  for (var i = genres.length - 1; i >= 0; i--) {
+
+
+      let thisGenre = {content_type: "text",
+                    title: genres[i].category_title,
+                    payload: "e_cat_" + genres[i].category_id };
+
+      arrayOfGenreBubbles.push(thisGenre);
+
+    
+  }
+
+
+
+  var messageData = {
+      recipient: {
+        id: recipientId
+      },
+      message:{
+      text:"Explore more...",
+      quick_replies:arrayOfGenreBubbles
+    }
+
+  }
+
+callSendAPI(messageData);
+
+}
+
+
+
 function sendEventCard(recipientId, cards){
 
   //Here I'll need to do some magic to check if a single object or array of objects!
@@ -238,9 +304,9 @@ function sendEventCard(recipientId, cards){
 
   //if(cards.length === 1) {
 
-    let listEventCategoriesPostback = 'e_cats_' + card.event_id;
 
     let card = cards;
+
     let imgurl = card.image_thumbnail;
     imgurl = imgurl.replace(/ /g,"%20")
   console.log(imgurl);
@@ -259,12 +325,12 @@ function sendEventCard(recipientId, cards){
             item_url: "https://www.google.com/",               
             image_url: imgurl,
             buttons: [{
-              type: "web_url",
-              url: "https://www.google.com/",
-              title: "Open Web URL"
-            }, {
               type: "postback",
               title: "More like this...",
+              payload: "e_id_"+ card.event_id+"_cats"
+            }, {
+              type: "postback",
+              title: "Re-find this (e_id_" + card.event_id +")",
               payload: "e_id_" + card.event_id
             }],
           }]
@@ -445,7 +511,7 @@ function findItem(type, field, value){
 
     }
 
-    else if(field === 'catid'){
+    else if(field === 'category_id'){
       foundItems = findByCat(value);
       return foundItems;
     }
@@ -490,6 +556,16 @@ function findItem(type, field, value){
 
 //Improved!
 
+//find things by ID
+//e_id_NNNN
+//c_id_NNNN
+
+//find events by something else
+//e_cat_NN
+
+
+//list an event's categories:
+//e_id_NNNN_cats
 function instructionDecoder(receivedMessage, senderID){
 
   let msgToSend = "";
@@ -528,16 +604,40 @@ function instructionDecoder(receivedMessage, senderID){
 
 
 
-    //If it's a lookup of an ID, we can assume what we want to do.
+
+
+    //If it's a lookup of an ID, we can build the queryItem from that.
     if (codedInstructionArray[1] ==='id'){
         queryItem = queryType + '_id';
 
         let foundItem = findItem(queryType, queryItem, queryTerm);
 
         if(foundItem === undefined){
-          console.log(foundItem);
+          //console.log(foundItem);
           msgToSend = 'hmm, couldn\'t find that one';
         }
+
+
+
+
+
+
+        //If it's got a 4th paramater, it's a weird one...
+        if(codedInstructionArray[3]){
+
+          if(queryType ==='event' && codedInstructionArray[3] === 'cats'){
+
+            let foundEvent = findItem(queryType, queryItem, queryTerm);
+            let foundEventCategories = foundEvent.categories.item;
+
+            sendGenreBubbles(senderID, foundEventCategories);
+          }
+
+      
+        }
+
+
+
 
         else if (queryType === 'event'){
           console.log(foundItem.event_title);
@@ -550,12 +650,15 @@ function instructionDecoder(receivedMessage, senderID){
           //console.log('i should send a msg now saying ' + msgToSend);
 
           sendEventCard(senderID, foundItem);
+
+          //console.log(foundItem);
         }
 
         else if (queryType === 'category'){
           //console.log(foundItem.category_title);
           //console.log(foundItem.category_id);
-
+          //so this is sending category, category_id, X
+          let foundItem = findItem(queryType, queryItem, queryTerm);
 
         }
 
@@ -564,7 +667,9 @@ function instructionDecoder(receivedMessage, senderID){
       }
 
 
-    if (codedInstructionArray[1] ==='cat'){
+
+
+    if (codedInstructionArray[0] === 'e' && codedInstructionArray[1] ==='cat'){
 
         //This is so that we can look for events with a category!
         queryItem = codedInstructionArray[1];
@@ -734,7 +839,7 @@ function convertXMLSToJs(){
     fetchedAllCategoriesJSON = result.response.objects.item;
   });
 
-  normalizeEventCategoriess();
+  normalizeEventCategories();
 
   //Good place to put some bonus tests to check that the JSONs contain what we want.
   //i.e. not server errors.
@@ -801,7 +906,7 @@ if(order === 'alphabetical'){
 
 
 
-function normalizeEventCategoriess(){
+function normalizeEventCategories(){
   //Normalize the way that categories are structured so that they are always an array. Do this crunching once to take the strain off subsequent requests...
 
   //Useful to cleanly do stuff to a smaller subset of categories.
@@ -828,6 +933,8 @@ function normalizeEventCategoriess(){
     }
     
   }
+
+  console.log('[event categories structure has been normalized]');
 }
 
 
