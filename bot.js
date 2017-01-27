@@ -129,11 +129,14 @@ app.post('/webhook', function (req, res) {
 
         if (event.message) {
 
+          console.log('msg received');
+
           if (event.message.quick_reply){
               receivedQuickReply(event);
           }
 
           else {
+            console.log('text msg received');
             receivedMessage(event);
         }
         } else if (event.postback) {
@@ -512,8 +515,8 @@ function findItem(type, field, value){
     }
 
     else if(field === 'category_id'){
-      foundItems = findByCat(value);
-      return foundItems;
+      //foundItems = findByCat(value);
+      //return foundItems;
     }
 
 
@@ -523,10 +526,10 @@ function findItem(type, field, value){
 
       //It's more complicated than this because events have multiple cats!
 
-      let foundItems = fetchedAllEventsJSON.filter(event => (event.categories.item.category_id === value));
+      //let foundItems = fetchedAllEventsJSON.filter(event => (event.categories.item.category_id === value));
 
-      console.log(foundItems);
-      return foundItems;
+      //console.log(foundItems);
+      //return foundItems;
     }
 
 
@@ -1036,10 +1039,10 @@ function megaGetter(){
 //Test 2: Scheduled function calls :)
 //http://stackoverflow.com/questions/12309019/javascript-how-to-do-something-every-full-hour
 
-function to_be_executed(){
+function scheculed_refresh(){
 
     let executionTime = new Date();
-    console.log("🙌to_be_executed just ran🙌" + executionTime.getHours() + ":" + executionTime.getMinutes() + ":" + executionTime.getSeconds() );
+    console.log("🙌scheduled refresh just ran🙌" + executionTime.getHours() + ":" + executionTime.getMinutes() + ":" + executionTime.getSeconds() );
     
     //Once executed, start a new countdown for the next trigger of this function:
     megaGetter();
@@ -1050,22 +1053,10 @@ function to_be_executed(){
 function countDownToAPIPull(){
     console.log('making a new interval');
 
-    //This does it hourly:
-    // var d = new Date();
-    // var min = d.getMinutes();
-    // var sec = d.getSeconds();
-
-    // if((min == '00') && (sec == '00'))
-    //     to_be_executed();
-    // else
-    //     setTimeout(to_be_executed,(60*(60-min)+(60-sec))*1000);
-
-    //This does it at midnight:
-    //http://stackoverflow.com/questions/20920169/js-fire-event-on-midnight
 
     if(initialFetch === true){
       initialFetch = false;
-      to_be_executed();
+      scheculed_refresh();
     }
 
     else {
@@ -1073,7 +1064,7 @@ function countDownToAPIPull(){
       var tommorow = new Date(today.getFullYear(),today.getMonth(),today.getDate()+1);
       var timeToMidnight = (tommorow-today);
       console.log('Next fetch will be at midnight, (or in ' + (((timeToMidnight/100)/60)/60) + 'hours)' );
-      var timer = setTimeout(to_be_executed,timeToMidnight);
+      var timer = setTimeout(scheculed_refresh,timeToMidnight);
   }
 }
 
