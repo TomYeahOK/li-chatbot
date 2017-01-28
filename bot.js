@@ -727,6 +727,62 @@ function findEventsByCategory(query, set) {
 
 
 
+
+
+function listSetCategories(set){
+//Use when there are loads of events in a category, to let you filter it further
+//Takes in a set of events
+//Spits out an array of categories (id + name)
+//then whatever receives it can look at how many there are and decide what format of message to send it as
+
+  let foundCategories = [];
+
+  //Loop through the set
+  for (var k = 0; k < fetchedAllEventsJSON.length; k++) {
+
+    if(fetchedAllEventsJSON[k].categories){
+
+      for (var l = 0; l < fetchedAllEventsJSON[k].categories.item.length; l++) {
+
+        if (fetchedAllEventsJSON[k].categories.item[l].category_id.trim() == set){
+          //At this point we've got an event with the category.
+
+          //Now re-loop through it
+          for (var m = 0; m < fetchedAllEventsJSON[k].categories.item.length; m++) {
+
+            //don't want duplicates, so checking if it's already in the array:
+            //should be possible to replace this with es6 magic, but doesn't seem to work.
+            //e.g. [...new Set(foundCategories)];
+            let alreadycaptured = false;
+
+            for (var n = 0; n < foundCategories.length; n++) {
+
+              if(foundCategories[n].category_id == fetchedAllEventsJSON[k].categories.item[m].category_id.trim()){
+                alreadycaptured = true;
+              }
+            }
+
+            if(alreadycaptured == false){
+              foundCategories.push({category_id: fetchedAllEventsJSON[k].categories.item[m].category_id.trim(), category_title: fetchedAllEventsJSON[k].categories.item[m].category_title.trim()});
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return(foundCategories);
+}
+
+
+
+
+
+
+
+
+
+
 //Improved!
 
 //find things by ID
