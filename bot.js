@@ -305,6 +305,18 @@ function sendEventCard(recipientId, cards, start, catID){
   let startCard = 0;
   let length = 6;
 
+
+  if(start){
+    startCard = parseInt(start, 10);
+  }
+
+    console.log('cards.length: '+ cards.length + ', startCard: ' + startCard+ ', length: ' + length  + ', catId: '+ catID);
+    let offset = (length + startCard);
+    let remainingEvents = (cards.length - offset);
+
+    console.log('remaining = '+cards.length + '-' + '\(' + length + '+' + startCard + ') = ' + offset);
+
+
   if (cards.length){
     console.log('ooh theres more than one');
 
@@ -312,8 +324,16 @@ function sendEventCard(recipientId, cards, start, catID){
 
     for (var i = start; i < length; i++) {
 
-      let imgurl = cards[i].image_thumbnail;
-      imgurl = imgurl.replace(/ /g,"%20");
+      if (typeof cards[i].image_thumbnail !== undefined){
+
+        let imgurl = cards[i].image_thumbnail;
+        imgurl = imgurl.replace(/ /g,"%20");
+
+        }
+
+      else {
+        let imgurl = "http://www.leedsinspired.co.uk/sites/all/themes/li/logo.png";
+      }
 
       let thisEvent = {
             title: cards[i].event_title,
@@ -377,8 +397,18 @@ function sendEventCard(recipientId, cards, start, catID){
 
     let card = cards;
 
-    let imgurl = card.image_thumbnail;
-    imgurl = imgurl.replace(/ /g,"%20")
+    if (card.image_thumbnail !== 'undefined'){
+
+        let imgurl = cards[i].image_thumbnail;
+        imgurl = imgurl.replace(/ /g,"%20");
+
+        }
+
+      else {
+        let imgurl = "http://www.leedsinspired.co.uk/sites/all/themes/li/logo.png";
+      }
+
+
     var messageData = {
     recipient: {
       id: recipientId
@@ -776,27 +806,66 @@ function instructionDecoder(receivedMessage, senderID){
       if (codedInstructionArray[1] === 'cat'){
 
 
+          //Not done:
+          //list the other categories of events within a category
+          //e_cat_NN_othercats
+
+          
+          
+
+          
 
         if(codedInstructionArray[3]){
-          //e_cat_NN_NN
-          let foundItems = findEventsByCategory(codedInstructionArray[2], codedInstructionArray[2]);
 
-          let cat1Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
-          let cat2Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
+          if(Number.isInteger(codedInstructionArray[3])) {
+            console.log('it was a number');
+            //e_cat_NN_NN
+            //list events with two categories
 
-          let quickmsg = 'There are ' + foundItems.length + ' events that are '+ cat1Title + ' and ' + cat2Title;
+            let foundItems = findEventsByCategory(codedInstructionArray[2], codedInstructionArray[2]);
 
-          sendTextMessage(senderID, quickmsg);
+            let cat1Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
+            let cat2Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
+
+            let quickmsg = 'There are ' + foundItems.length + ' events that are '+ cat1Title + ' and ' + cat2Title;
+
+            sendTextMessage(senderID, quickmsg);
+          }
+
+          else if (codedInstructionArray[3] === 'cards'){
+            //e_cat_NN_cards_N
+            //keep showing more cards, starting at an offset
+
+
+            findEventsByCategory(codedInstructionArray[2])
+            .then(function(foundItems){
+
+              sendEventCard(senderID, foundItems, codedInstructionArray[4], codedInstructionArray[2]);
+            },
+
+            //Do this if findEventsByCategory promise rejects
+            function(){
+            }
+
+          )
+            
+          }
+
+          else if (codedInstructionArray[3] === 'othercats'){
+            //e_cat_NN_othercats
+            //list the other categories of events within a category
+            
+          }
+
+
+
+          
 
 
 
 
           }
 
-        // else if(){
-        //   //e_cat_NN_cards_N
-        //   //"e_cat_"+ catID+"_cards_"+(startCard + length)
-        // }
 
 
         else {
