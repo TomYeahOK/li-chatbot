@@ -3,13 +3,6 @@
 //LI Bot
 
 //TODO List
-//Consider whether instructiondecoder and findItem need to be 2 separate functions. Just seems to be the same tests?
-//^^the rationale might be to do with writing msgs???
-//Make a fn to list the cats associated with a given event.
-//Implement a message that lists the categories - to let users drill in. This can be 'more like this' button, which lists cats as bubbles?
-
-//Sort out a multi-card maker that makes X cards, to list items in a category.
-
 
 //Listen to free dialogue
 //Make it so it can listen for genres as free text, identify them, and then list the events.
@@ -261,21 +254,35 @@ function sendTextMessage(recipientId, messageText) {
 }
 
 
-function sendGenreBubbles(recipientId, genres){
+function sendGenreBubbles(recipientId, cats, purpose, firstCat){
 
   let arrayOfGenreBubbles = [];
 
-  for (var i = genres.length - 1; i >= 0; i--) {
+  for (var i = cats.length - 1; i >= 0; i--) {
+
+    let payload = "e_cat_" + cats[i].category_id;
+
+    if(purpose == 'narrow'){
+      payload = "e_cat_" + firstCat + "_" + cats[i].category_id;
+    }
 
 
       let thisGenre = {content_type: "text",
-                    title: genres[i].category_title,
-                    payload: "e_cat_" + genres[i].category_id };
+                    title: cats[i].category_title,
+                    payload: payload };
 
       arrayOfGenreBubbles.push(thisGenre);
 
     
   }
+
+  let messageText = 'Explore more...';
+
+  if(purpose == 'narrow'){
+    messageText = 'Let\'s narrow it down...'
+  }
+
+  console.log(arrayOfGenreBubbles);
 
 
 
@@ -284,7 +291,7 @@ function sendGenreBubbles(recipientId, genres){
         id: recipientId
       },
       message:{
-      text:"Explore more...",
+      text:messageText,
       quick_replies:arrayOfGenreBubbles
     }
 
@@ -310,11 +317,11 @@ function sendEventCard(recipientId, cards, start, catID){
     startCard = parseInt(start, 10);
   }
 
-    console.log('cards.length: '+ cards.length + ', startCard: ' + startCard+ ', length: ' + length  + ', catId: '+ catID);
+    //console.log('cards.length: '+ cards.length + ', startCard: ' + startCard+ ', length: ' + length  + ', catId: '+ catID);
     let offset = (length + startCard);
     let remainingEvents = (cards.length - offset);
 
-    console.log('remaining = '+cards.length + '-' + '\(' + length + '+' + startCard + ') = ' + remainingEvents);
+    //console.log('remaining = '+cards.length + '-' + '\(' + length + '+' + startCard + ') = ' + remainingEvents);
 
 
   if (cards.length){
@@ -369,7 +376,7 @@ function sendEventCard(recipientId, cards, start, catID){
             }, {
               type: "postback",
               title: "Narrow my search",
-              payload: "tbc"
+              payload: "e_cat_" + catID + "_othercats"
             }],
           };
 
@@ -453,76 +460,6 @@ function sendEventCard(recipientId, cards, start, catID){
 }
 
 
-//INCOMPLETE
-function sendGenreCards(recipientId, start, end, set ){
- //This function will produce cards for all the genres.
- //If a set of  (IDs) is passed, it'll use that, otherwise it'll do all genres.
-
-  let arrayOfGenreCards = [];
-
-
-  if (!set){
-
-  for (var i = genres.length - 1; i >= 0; i--) {
-
-
-      let thisGenre = {content_type: "text",
-                    title: genres[i].category_title,
-                    payload: "e_cat_" + genres[i].category_id };
-
-      arrayOfGenreCards.push(thisGenre);
-
-    
-  }
-}
-
- var messageData = {
-    recipient: {
-      id: recipientId
-    },
-    message: {
-      attachment: {
-        type: "template",
-        payload: {
-          template_type: "generic",
-          elements: [{
-            title: "rift",
-            subtitle: "Next-generation virtual reality",
-            item_url: "https://www.oculus.com/en-us/rift/",               
-            image_url: "http://messengerdemo.parseapp.com/img/rift.png",
-            buttons: [{
-              type: "web_url",
-              url: "https://www.oculus.com/en-us/rift/",
-              title: "Open Web URL"
-            }, {
-              type: "postback",
-              title: "Call Postback",
-              payload: "Payload for first bubble",
-            }],
-          }, {
-            title: "touch",
-            subtitle: "Your Hands, Now in VR",
-            item_url: "https://www.oculus.com/en-us/touch/",               
-            image_url: "http://messengerdemo.parseapp.com/img/touch.png",
-            buttons: [{
-              type: "web_url",
-              url: "https://www.oculus.com/en-us/touch/",
-              title: "Open Web URL"
-            }, {
-              type: "postback",
-              title: "Call Postback",
-              payload: "Payload for second bubble",
-            }]
-          }]
-        }
-      }
-    }
-  };  
-
-  callSendAPI(messageData);
-
-
-}
 
 function sendGenericMessage(recipientId) {
   var messageData = {
@@ -877,25 +814,11 @@ function instructionDecoder(receivedMessage, senderID){
 
         if(codedInstructionArray[3]){
 
-          if(Number.isInteger(codedInstructionArray[3])) {
-            console.log('it was a number');
-            //e_cat_NN_NN
-            //list events with two categories
 
-            let foundItems = findEventsByCategory(codedInstructionArray[2], codedInstructionArray[2]);
 
-            let cat1Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
-            let cat2Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
-
-            let quickmsg = 'There are ' + foundItems.length + ' events that are '+ cat1Title + ' and ' + cat2Title;
-
-            sendTextMessage(senderID, quickmsg);
-          }
-
-          else if (codedInstructionArray[3] === 'cards'){
+          if (codedInstructionArray[3] === 'cards'){
             //e_cat_NN_cards_N
             //keep showing more cards, starting at an offset
-
 
             findEventsByCategory(codedInstructionArray[2])
             .then(function(foundItems){
@@ -914,7 +837,26 @@ function instructionDecoder(receivedMessage, senderID){
           else if (codedInstructionArray[3] === 'othercats'){
             //e_cat_NN_othercats
             //list the other categories of events within a category
+
+            let otherCategories = listSetCategories(codedInstructionArray[2]).slice(0,5);
+            sendGenreBubbles(senderID, otherCategories, 'narrow', codedInstructionArray[2] );
             
+           }
+
+
+          else if(!isNaN(codedInstructionArray[3])) {
+            console.log('it was a number');
+            //e_cat_NN_NN
+            //list events with two categories
+
+            let foundItems = findEventsByCategory(codedInstructionArray[3], codedInstructionArray[2]);
+
+            let cat1Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
+            let cat2Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[3]).category_title;
+
+            let quickmsg = 'There are ' + foundItems.length + ' events that are both'+ cat1Title + ' and ' + cat2Title;
+
+            sendTextMessage(senderID, quickmsg);
           }
 
 
