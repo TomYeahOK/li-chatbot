@@ -314,7 +314,7 @@ function sendEventCard(recipientId, cards, start, catID){
     let offset = (length + startCard);
     let remainingEvents = (cards.length - offset);
 
-    console.log('remaining = '+cards.length + '-' + '\(' + length + '+' + startCard + ') = ' + offset);
+    console.log('remaining = '+cards.length + '-' + '\(' + length + '+' + startCard + ') = ' + remainingEvents);
 
 
   if (cards.length){
@@ -322,17 +322,19 @@ function sendEventCard(recipientId, cards, start, catID){
 
     let arrayOfEventCards = [];
 
-    for (var i = start; i < length; i++) {
+    for (var i = start; i < offset; i++) {
+
+      let imgurl = '';
 
       if (typeof cards[i].image_thumbnail !== undefined){
 
-        let imgurl = cards[i].image_thumbnail;
+        imgurl = cards[i].image_thumbnail;
         imgurl = imgurl.replace(/ /g,"%20");
 
         }
 
       else {
-        let imgurl = "http://www.leedsinspired.co.uk/sites/all/themes/li/logo.png";
+         imgurl = "http://www.leedsinspired.co.uk/sites/all/themes/li/logo.png";
       }
 
       let thisEvent = {
@@ -397,15 +399,17 @@ function sendEventCard(recipientId, cards, start, catID){
 
     let card = cards;
 
-    if (card.image_thumbnail !== 'undefined'){
+    let imgurl = '';
 
-        let imgurl = cards[i].image_thumbnail;
+    if (card.image_thumbnail !== ''){
+
+        imgurl = card.image_thumbnail;
         imgurl = imgurl.replace(/ /g,"%20");
 
         }
 
       else {
-        let imgurl = "http://www.leedsinspired.co.uk/sites/all/themes/li/logo.png";
+        imgurl = "http://www.leedsinspired.co.uk/sites/all/themes/li/logo.png";
       }
 
 
