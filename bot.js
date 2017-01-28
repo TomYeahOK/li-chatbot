@@ -347,6 +347,78 @@ function sendEventCard(recipientId, cards){
 
 }
 
+
+//INCOMPLETE
+function sendGenreCards(recipientId, start, end, set ){
+ //This function will produce cards for all the genres.
+ //If a set of genres (IDs) is passed, it'll use that, otherwise it'll do all genres.
+
+  let arrayOfGenreCards = [];
+
+
+  if (!set){
+
+  for (var i = genres.length - 1; i >= 0; i--) {
+
+
+      let thisGenre = {content_type: "text",
+                    title: genres[i].category_title,
+                    payload: "e_cat_" + genres[i].category_id };
+
+      arrayOfGenreCards.push(thisGenre);
+
+    
+  }
+}
+
+ var messageData = {
+    recipient: {
+      id: recipientId
+    },
+    message: {
+      attachment: {
+        type: "template",
+        payload: {
+          template_type: "generic",
+          elements: [{
+            title: "rift",
+            subtitle: "Next-generation virtual reality",
+            item_url: "https://www.oculus.com/en-us/rift/",               
+            image_url: "http://messengerdemo.parseapp.com/img/rift.png",
+            buttons: [{
+              type: "web_url",
+              url: "https://www.oculus.com/en-us/rift/",
+              title: "Open Web URL"
+            }, {
+              type: "postback",
+              title: "Call Postback",
+              payload: "Payload for first bubble",
+            }],
+          }, {
+            title: "touch",
+            subtitle: "Your Hands, Now in VR",
+            item_url: "https://www.oculus.com/en-us/touch/",               
+            image_url: "http://messengerdemo.parseapp.com/img/touch.png",
+            buttons: [{
+              type: "web_url",
+              url: "https://www.oculus.com/en-us/touch/",
+              title: "Open Web URL"
+            }, {
+              type: "postback",
+              title: "Call Postback",
+              payload: "Payload for second bubble",
+            }]
+          }]
+        }
+      }
+    }
+  };  
+
+  callSendAPI(messageData);
+
+
+}
+
 function sendGenericMessage(recipientId) {
   var messageData = {
     recipient: {
@@ -439,54 +511,98 @@ var server = app.listen(process.env.PORT || 3000, function () {
 
 
 
-function findByCat(catID){
+// function findByCat(catID){
 
-  //A function that returns objects with a given category_id
-  //Has to work around some structural specialness whereby events with multiple cats are structured differently to those with only one.
+//   //A function that returns objects with a given category_id
+//   //Has to work around some structural specialness whereby events with multiple cats are structured differently to those with only one.
 
-  //var justEvents = allEvents.response.objects.item;
-  let matchedEvents = [];
+//   //var justEvents = allEvents.response.objects.item;
+//   let matchedEvents = [];
 
-  //Loop over all events
-  for (var i = fetchedAllEventsJSON.length - 1; i >= 0; i--) {
+//   //Loop over all events
+//   for (var i = fetchedAllEventsJSON.length - 1; i >= 0; i--) {
 
-    //Only run on it if it has categories.
-    if(fetchedAllEventsJSON[i].categories){
+//     //Only run on it if it has categories.
+//     if(fetchedAllEventsJSON[i].categories){
 
-      //Sometimes categories is an object. Sometimes an array of object.
-      //If it's only got one category, it's an object. If it's >1 it's an array
+//       //Sometimes categories is an object. Sometimes an array of object.
+//       //If it's only got one category, it's an object. If it's >1 it's an array
 
-      //Grab events
-      let eventCategories = fetchedAllEventsJSON[i].categories;
+//       //Grab events
+//       let eventCategories = fetchedAllEventsJSON[i].categories;
 
-      //Check if there's more than one
-      if(eventCategories.item.length){
+//       //Check if there's more than one
+//       if(eventCategories.item.length){
 
-        //It has more than one, so loop over each
-        for (var j = eventCategories.item.length - 1; j >= 0; j--) {
+//         //It has more than one, so loop over each
+//         for (var j = eventCategories.item.length - 1; j >= 0; j--) {
 
-          if(eventCategories.item[j].category_id == catID) {
-            matchedEvents.push(fetchedAllEventsJSON[i]);
+//           if(eventCategories.item[j].category_id == catID) {
+//             matchedEvents.push(fetchedAllEventsJSON[i]);
+//           }
+//         }
+//       }
+
+//       else {
+
+//         //It only has one cat, so no need for the loop
+//         if(eventCategories.item.category_id == catID) {
+//           matchedEvents.push(fetchedAllEventsJSON[i]);
+//         }
+//       }
+//     }
+    
+//   }
+
+//   //console.table(matchedEvents);
+  
+//   return(matchedEvents);
+// }
+
+
+
+function findEventsByCategory(query, set) {
+
+  let matchingItems = [];
+
+  //If what's received is a number, it's an ID:
+
+  if(!set){
+    set = fetchedAllEventsJSON;
+  }
+  
+  //if(Number.isInteger(query)){
+
+    for (var k = 0; k < set.length; k++) {
+
+      if(set[k].categories){
+      // console.log(k+":");
+      //  console.log(fetchedAllEventsJSON[k].categories.item.length);
+
+        for (var l = 0; l < set[k].categories.item.length; l++) {
+        // if (fetchedAllEventsJSON[k].categories.item[l].category_id === catID){
+        //   matchingItems.push(fetchedAllEventsJSON[k]);
+        // }
+
+        //console.log('checking: ' + k + ':' + l + '('+fetchedAllEventsJSON[k].categories.item[l].category_id.trim()+')');
+
+          if (set[k].categories.item[l].category_id.trim() == query){
+            //console.log('match:');
+            matchingItems.push(set[k]);
+            //break;
+            }
           }
         }
       }
+    //}
 
-      else {
+  //If it's a word, the easiest thing would be to go and turn it into an ID?
+  // else {
 
-        //It only has one cat, so no need for the loop
-        if(eventCategories.item.category_id == catID) {
-          matchedEvents.push(fetchedAllEventsJSON[i]);
-        }
-      }
-    }
-    
-  }
+  // }
 
-  //console.table(matchedEvents);
-  
-  return(matchedEvents);
+return matchingItems;
 }
-
 
 
 
@@ -517,6 +633,8 @@ function findItem(type, field, value){
     else if(field === 'category_id'){
       //foundItems = findByCat(value);
       //return foundItems;
+      //foundItems = findEventsByCategory(value);
+      //sendTextMessage();
     }
 
 
@@ -678,9 +796,17 @@ function instructionDecoder(receivedMessage, senderID){
         queryItem = codedInstructionArray[1];
 
         //Need  set up foundItems to know to multiple objects (in an array).
-        let foundItems = findItem(queryType, queryItem, queryTerm);
+        //let foundItems = findItem(queryType, queryItem, queryTerm);
 
-        console.log(foundItems);
+        let foundItems = findEventsByCategory(queryTerm);
+
+        let quickmsg = 'found ' + foundItems.length + ' events in category ';
+
+        sendTextMessage(senderID, quickmsg);
+
+
+
+        //console.log(foundItems);
 
 
         //return;
@@ -852,7 +978,7 @@ function convertXMLSToJs(){
 
 
 
-
+//This is unused.
 function listCategories(order, start, amount){
 
   let categoriesAlphabetised = {};
