@@ -612,41 +612,39 @@ function findEventsByCategory(query, set) {
 
     //If what's received is a number, it's an ID:
 
+    let setToFilter = [];
+
     if(!set){
-      set = fetchedAllEventsJSON;
+      setToFilter = fetchedAllEventsJSON;
     }
-    
-    //if(Number.isInteger(query)){
 
-      for (var k = 0; k < set.length; k++) {
+    else{
+      for (var k = 0; k < fetchedAllEventsJSON.length; k++) {
 
-        if(set[k].categories){
-        // console.log(k+":");
-        //  console.log(fetchedAllEventsJSON[k].categories.item.length);
+        if(fetchedAllEventsJSON[k].categories){
 
-          for (var l = 0; l < set[k].categories.item.length; l++) {
-          // if (fetchedAllEventsJSON[k].categories.item[l].category_id === catID){
-          //   matchingItems.push(fetchedAllEventsJSON[k]);
-          // }
-
-          //console.log('checking: ' + k + ':' + l + '('+fetchedAllEventsJSON[k].categories.item[l].category_id.trim()+')');
-
-            if (set[k].categories.item[l].category_id.trim() == query){
-              //console.log('match:');
-              matchingItems.push(set[k]);
-              //break;
+          for (var l = 0; l < fetchedAllEventsJSON[k].categories.item.length; l++) {
+         
+            if (fetchedAllEventsJSON[k].categories.item[l].category_id.trim() == set){
+              setToFilter.push(fetchedAllEventsJSON[k]);
               }
             }
           }
         }
-      //}
+      }
 
-    //If it's a word, the easiest thing would be to go and turn it into an ID?
-    // else {
+    for (var k = 0; k < setToFilter.length; k++) {
 
-    // }
+      if(setToFilter[k].categories){
 
-  //return matchingItems;
+        for (var l = 0; l < setToFilter[k].categories.item.length; l++) {
+
+          if (setToFilter[k].categories.item[l].category_id.trim() == query){
+            matchingItems.push(setToFilter[k]);
+            }
+          }
+        }
+      }
   
 
   if(matchingItems.length === 0){
@@ -655,6 +653,7 @@ function findEventsByCategory(query, set) {
 
   else {
     resolve(matchingItems);
+
   }
 
   })
@@ -839,6 +838,7 @@ function instructionDecoder(receivedMessage, senderID){
             //list the other categories of events within a category
 
             let otherCategories = listSetCategories(codedInstructionArray[2]).slice(0,5);
+
             sendGenreBubbles(senderID, otherCategories, 'narrow', codedInstructionArray[2] );
             
            }
@@ -849,22 +849,26 @@ function instructionDecoder(receivedMessage, senderID){
             //e_cat_NN_NN
             //list events with two categories
 
-            let foundItems = findEventsByCategory(codedInstructionArray[3], codedInstructionArray[2]);
+            findEventsByCategory(codedInstructionArray[3], codedInstructionArray[2])
+              .then(function(foundItems){
 
-            let cat1Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
-            let cat2Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[3]).category_title;
+                let cat1Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
+                let cat2Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[3]).category_title;
 
-            let quickmsg = 'There are ' + foundItems.length + ' events that are both'+ cat1Title + ' and ' + cat2Title;
+                let quickmsg = 'There are ' + foundItems.length + ' events that are both '+ cat1Title + ' and ' + cat2Title;
 
-            sendTextMessage(senderID, quickmsg);
+                sendTextMessage(senderID, quickmsg);
+
+                sendEventCard(senderID, foundItems, 0, codedInstructionArray[3]);
+
+              },
+
+              //Do this if findEventsByCategory promise rejects
+              function(){
+              }
+
+            )
           }
-
-
-
-          
-
-
-
 
           }
 
@@ -873,7 +877,6 @@ function instructionDecoder(receivedMessage, senderID){
         else {
 
           //e_cat_NN
-
 
           findEventsByCategory(codedInstructionArray[2])
             .then(function(foundItems){
@@ -892,30 +895,6 @@ function instructionDecoder(receivedMessage, senderID){
               sendTextMessage(senderID, quickmsg);
 
               sendEventCard(senderID, foundItems, 0, codedInstructionArray[2]);
-
-
-              // var filterMoreMessageData = {
-              //     recipient: {
-              //       id: senderID
-              //     },
-              //     message:{
-              //     text:"Too much to choose from? filter them down more",
-              //     quick_replies:[{
-              //           content_type: "text",
-              //           title: "Filter more",
-              //           payload: "c_id_" +codedInstructionArray[2]+"_othercats" 
-              //         }]
-              //       }
-
-              //   }
-              // callSendAPI(filterMoreMessage);
-
-
-
-
-              
-
-
             },
 
             //Do this if findEventsByCategory promise rejects
@@ -923,13 +902,6 @@ function instructionDecoder(receivedMessage, senderID){
             }
 
           )
-
-
-
-               
-
-
-          // sendEventCard(senderID, foundItems);
 
           
           }
