@@ -296,22 +296,83 @@ callSendAPI(messageData);
 
 
 
-function sendEventCard(recipientId, cards){
+function sendEventCard(recipientId, cards, start, catID){
 
   //Here I'll need to do some magic to check if a single object or array of objects!
 
   //Or do I need to??
 
-  let hmm = [cards]; 
+  let startCard = 0;
+  let length = 6;
 
-  console.log("hmm " + hmm.length);
+  if (cards.length){
+    console.log('ooh theres more than one');
 
+    let arrayOfEventCards = [];
 
-  //console.log("cards.length:"+Object.keys(cards).length);
- // console.log(cards);
-  //console.log("cards.length:"+cards.length);
+    for (var i = start; i < length; i++) {
 
-  //if(cards.length === 1) {
+      let imgurl = cards[i].image_thumbnail;
+      imgurl = imgurl.replace(/ /g,"%20");
+
+      let thisEvent = {
+            title: cards[i].event_title,
+            subtitle: cards[i].place_title,
+            item_url: "https://www.google.com",               
+            image_url: imgurl,
+            buttons: [{
+              type: "postback",
+              title: "More like this...",
+              payload: "e_id_"+ cards[i].event_id+"_cats"
+            }, {
+              type: "postback",
+              title: "Re-find this (e_id_" + cards[i].event_id +")",
+              payload: "e_id_" + cards[i].event_id
+            }],
+          };
+      arrayOfEventCards.push(thisEvent);
+      };
+
+      let remainingEvents = cards.length - (length + startCard);
+
+      let showMoreCardsCard = {
+            title: 'There\'s ' + remainingEvents + ' more events in this category' ,
+            subtitle: "keep exploring...",
+            item_url: "https://www.google.com",               
+            image_url: "http://www.leedsinspired.co.uk/sites/all/themes/li/logo.png",
+            buttons: [{
+              type: "postback",
+              title: "Show more",
+              payload: "e_cat_"+ catID+"_cards_"+(startCard + length)
+            }, {
+              type: "postback",
+              title: "Narrow my search",
+              payload: "tbc"
+            }],
+          };
+
+        arrayOfEventCards.push(showMoreCardsCard);
+
+       var messageData = {
+        recipient: {
+          id: recipientId
+        },
+        message: {
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "generic",
+              elements: arrayOfEventCards
+            }
+          }
+        }
+      };  
+
+    callSendAPI(messageData);
+
+  }
+
+  else {
 
 
     let card = cards;
@@ -347,8 +408,13 @@ function sendEventCard(recipientId, cards){
     }
   };  
 
-  callSendAPI(messageData);
-  //}
+    callSendAPI(messageData);
+
+}
+
+  
+
+
 
 }
 
@@ -569,9 +635,7 @@ var server = app.listen(process.env.PORT || 3000, function () {
 function findEventsByCategory(query, set) {
 
 
-
-
-  //return new Promise(function(resolve, reject){
+  return new Promise(function(resolve, reject){
 
     let matchingItems = [];
 
@@ -611,10 +675,18 @@ function findEventsByCategory(query, set) {
 
     // }
 
-  return matchingItems;
-  //resolve(matchingItems);
+  //return matchingItems;
+  
 
-  //}
+  if(matchingItems.length === 0){
+    reject();
+  }
+
+  else {
+    resolve(matchingItems);
+  }
+
+  })
 }
 
 
@@ -630,12 +702,23 @@ function findEventsByCategory(query, set) {
 //find events by cat
 //e_cat_NN
 
+//list an event's categories:
+//e_id_NNNN_cats
+
+
+
+
+//Not done:
 //list the other categories of events within a category
 //e_cat_NN_othercats
 
+//keep showing more cards, starting at an offset
+//e_cat_NN_cards_N
 
-//list an event's categories:
-//e_id_NNNN_cats
+//list events with two categories
+//e_cat_NN_NN
+
+
 function instructionDecoder(receivedMessage, senderID){
 
   let msgToSend = "";
@@ -655,9 +738,6 @@ function instructionDecoder(receivedMessage, senderID){
   if(codedInstructionRegexp.test(messageContent)){
 
     let codedInstructionArray = messageContent.split('_');
-
-
-
 
     if(codedInstructionArray[0] === 'e'){
 
@@ -708,43 +788,79 @@ function instructionDecoder(receivedMessage, senderID){
 
           sendTextMessage(senderID, quickmsg);
 
+
+
+
           }
+
+        // else if(){
+        //   //e_cat_NN_cards_N
+        //   //"e_cat_"+ catID+"_cards_"+(startCard + length)
+        // }
 
 
         else {
 
           //e_cat_NN
-          let foundItems = findEventsByCategory(codedInstructionArray[2]);
-
-          let foundCat = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]);
 
 
-          console.log(foundCat);
+          findEventsByCategory(codedInstructionArray[2])
+            .then(function(foundItems){
 
-               let catTitle = foundCat.category_title;
-
-               let quickmsg = 'There are ' + foundItems.length + ' '+ catTitle + ' events';
-
-               sendTextMessage(senderID, quickmsg);
+              let foundCat = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]);
 
 
-          sendEventCard(senderID, foundItems);
+             console.log(foundCat);
 
-          var messageData = {
-              recipient: {
-                id: senderID
-              },
-              message:{
-              text:"Too much to choose from? filter them down more",
-              quick_replies:[{
-                    content_type: "text",
-                    title: "Filter more",
-                    payload: "c_id_" +codedInstructionArray[2]+"_othercats" 
-                  }]
-                }
 
+
+              let catTitle = foundCat.category_title;
+
+              let quickmsg = 'There are ' + foundItems.length + ' '+ catTitle + ' events';
+
+              sendTextMessage(senderID, quickmsg);
+
+              sendEventCard(senderID, foundItems, 0, codedInstructionArray[2]);
+
+
+              // var filterMoreMessageData = {
+              //     recipient: {
+              //       id: senderID
+              //     },
+              //     message:{
+              //     text:"Too much to choose from? filter them down more",
+              //     quick_replies:[{
+              //           content_type: "text",
+              //           title: "Filter more",
+              //           payload: "c_id_" +codedInstructionArray[2]+"_othercats" 
+              //         }]
+              //       }
+
+              //   }
+              // callSendAPI(filterMoreMessage);
+
+
+
+
+              
+
+
+            },
+
+            //Do this if findEventsByCategory promise rejects
+            function(){
             }
-          callSendAPI(messageData);
+
+          )
+
+
+
+               
+
+
+          // sendEventCard(senderID, foundItems);
+
+          
           }
 
         }
