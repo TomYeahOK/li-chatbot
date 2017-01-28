@@ -302,8 +302,14 @@ function sendEventCard(recipientId, cards){
 
   //Or do I need to??
 
+  let hmm = [cards]; 
 
-  console.log("cards.length:"+Object.keys(cards).length);
+  console.log("hmm " + hmm.length);
+
+
+  //console.log("cards.length:"+Object.keys(cards).length);
+ // console.log(cards);
+  //console.log("cards.length:"+cards.length);
 
   //if(cards.length === 1) {
 
@@ -312,7 +318,6 @@ function sendEventCard(recipientId, cards){
 
     let imgurl = card.image_thumbnail;
     imgurl = imgurl.replace(/ /g,"%20")
-  console.log(imgurl);
     var messageData = {
     recipient: {
       id: recipientId
@@ -563,45 +568,53 @@ var server = app.listen(process.env.PORT || 3000, function () {
 
 function findEventsByCategory(query, set) {
 
-  let matchingItems = [];
 
-  //If what's received is a number, it's an ID:
 
-  if(!set){
-    set = fetchedAllEventsJSON;
-  }
-  
-  //if(Number.isInteger(query)){
 
-    for (var k = 0; k < set.length; k++) {
+  //return new Promise(function(resolve, reject){
 
-      if(set[k].categories){
-      // console.log(k+":");
-      //  console.log(fetchedAllEventsJSON[k].categories.item.length);
+    let matchingItems = [];
 
-        for (var l = 0; l < set[k].categories.item.length; l++) {
-        // if (fetchedAllEventsJSON[k].categories.item[l].category_id === catID){
-        //   matchingItems.push(fetchedAllEventsJSON[k]);
-        // }
+    //If what's received is a number, it's an ID:
 
-        //console.log('checking: ' + k + ':' + l + '('+fetchedAllEventsJSON[k].categories.item[l].category_id.trim()+')');
+    if(!set){
+      set = fetchedAllEventsJSON;
+    }
+    
+    //if(Number.isInteger(query)){
 
-          if (set[k].categories.item[l].category_id.trim() == query){
-            //console.log('match:');
-            matchingItems.push(set[k]);
-            //break;
+      for (var k = 0; k < set.length; k++) {
+
+        if(set[k].categories){
+        // console.log(k+":");
+        //  console.log(fetchedAllEventsJSON[k].categories.item.length);
+
+          for (var l = 0; l < set[k].categories.item.length; l++) {
+          // if (fetchedAllEventsJSON[k].categories.item[l].category_id === catID){
+          //   matchingItems.push(fetchedAllEventsJSON[k]);
+          // }
+
+          //console.log('checking: ' + k + ':' + l + '('+fetchedAllEventsJSON[k].categories.item[l].category_id.trim()+')');
+
+            if (set[k].categories.item[l].category_id.trim() == query){
+              //console.log('match:');
+              matchingItems.push(set[k]);
+              //break;
+              }
             }
           }
         }
-      }
-    //}
+      //}
 
-  //If it's a word, the easiest thing would be to go and turn it into an ID?
-  // else {
+    //If it's a word, the easiest thing would be to go and turn it into an ID?
+    // else {
 
-  // }
+    // }
 
-return matchingItems;
+  return matchingItems;
+  //resolve(matchingItems);
+
+  //}
 }
 
 
@@ -681,15 +694,41 @@ function instructionDecoder(receivedMessage, senderID){
 
 
       if (codedInstructionArray[1] === 'cat'){
-          //e_cat_NN
-          let foundItems = findEventsByCategory(codedInstructionArray[2]);
 
-          let catTitle = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
 
-          let quickmsg = 'There are ' + foundItems.length + ' '+ catTitle + 'events';
+
+        if(codedInstructionArray[3]){
+          //e_cat_NN_NN
+          let foundItems = findEventsByCategory(codedInstructionArray[2], codedInstructionArray[2]);
+
+          let cat1Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
+          let cat2Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
+
+          let quickmsg = 'There are ' + foundItems.length + ' events that are '+ cat1Title + ' and ' + cat2Title;
 
           sendTextMessage(senderID, quickmsg);
 
+          }
+
+
+        else {
+
+          //e_cat_NN
+          let foundItems = findEventsByCategory(codedInstructionArray[2]);
+
+          let foundCat = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]);
+
+
+          console.log(foundCat);
+
+               let catTitle = foundCat.category_title;
+
+               let quickmsg = 'There are ' + foundItems.length + ' '+ catTitle + ' events';
+
+               sendTextMessage(senderID, quickmsg);
+
+
+          sendEventCard(senderID, foundItems);
 
           var messageData = {
               recipient: {
@@ -706,7 +745,10 @@ function instructionDecoder(receivedMessage, senderID){
 
             }
           callSendAPI(messageData);
+          }
+
         }
+
 
       } 
 
