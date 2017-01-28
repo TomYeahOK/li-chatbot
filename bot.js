@@ -351,7 +351,7 @@ function sendEventCard(recipientId, cards){
 //INCOMPLETE
 function sendGenreCards(recipientId, start, end, set ){
  //This function will produce cards for all the genres.
- //If a set of genres (IDs) is passed, it'll use that, otherwise it'll do all genres.
+ //If a set of  (IDs) is passed, it'll use that, otherwise it'll do all genres.
 
   let arrayOfGenreCards = [];
 
@@ -681,8 +681,11 @@ function findItem(type, field, value){
 //e_id_NNNN
 //c_id_NNNN
 
-//find events by something else
+//find events by cat
 //e_cat_NN
+
+//list the other categories of events within a category
+//e_cat_NN_othercats
 
 
 //list an event's categories:
@@ -696,25 +699,35 @@ function instructionDecoder(receivedMessage, senderID){
 
   //Receives Message object
 
-
   //this will need pulling from receivedMessage, but for testing is hardcoded for now:
   let messageContent = receivedMessage;
 
 
   
   //Check if it's a codified message:
-  //let codedInstructionRegexp = new RegExp("([e|c|o])(_)\w+");
-
 
   if(codedInstructionRegexp.test(messageContent)){
 
     let codedInstructionArray = messageContent.split('_');
+
+
     let queryType, queryItem, queryTerm = '';
 
     queryTerm = codedInstructionArray[2];
 
+
+
+
+
     if(codedInstructionArray[0] === 'e'){
       queryType = 'event';
+
+      
+
+
+
+
+
     } 
 
 
@@ -804,13 +817,36 @@ function instructionDecoder(receivedMessage, senderID){
 
         sendTextMessage(senderID, quickmsg);
 
+        //Now send event Cards for that genre
+
+        //And send a bubble to let the user filter even further
+
+        var messageData = {
+              recipient: {
+                id: senderID
+              },
+              message:{
+              text:"Too much to choose from? filter them down more",
+              quick_replies:[{
+                    content_type: "text",
+                    title: "Filter",
+                    payload: "e_cat_" +queryTerm+"_drillbycat" 
+                  }]
+            }
+
+          }
+
+        callSendAPI(messageData);
+
+        }
+
 
 
         //console.log(foundItems);
 
 
         //return;
-    }
+    
 
     //FindItem ideally returns an object
     //Goes somewhere to construct an appropriate message.
