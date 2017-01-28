@@ -607,73 +607,6 @@ return matchingItems;
 
 
 
-function findItem(type, field, value){
-
-  console.log('💭 looking for ' + type + ', where ' + field + ' = ' + value);
-
-  let foundItem = {};
-  let foundItems = {};
-
-  if(type === 'event'){
-    if(field === 'event_id'){
-      foundItem = fetchedAllEventsJSON.find(event => event.event_id === value);
-
-    }
-    else if(field === 'event_title'){
-
-      //this is where we get to fuzzy searches.
-
-      //start by looking in the title for perfect matches
-      foundItem = fetchedAllEventsJSON.find(event => event.event_title === value);
-
-      //otherwise check titles for contains.
-
-    }
-
-    else if(field === 'category_id'){
-      //foundItems = findByCat(value);
-      //return foundItems;
-      //foundItems = findEventsByCategory(value);
-      //sendTextMessage();
-    }
-
-
-    else if(field === 'cat'){
-
-      console.log('gonna look for things in category ' + value);
-
-      //It's more complicated than this because events have multiple cats!
-
-      //let foundItems = fetchedAllEventsJSON.filter(event => (event.categories.item.category_id === value));
-
-      //console.log(foundItems);
-      //return foundItems;
-    }
-
-
-  }//End 'event's
-
-
-
-  if (type === 'category'){
-    if(field === 'category_id'){
-      foundItem = fetchedAllCategoriesJSON.find(category => category.category_id === value);
-    }
-
-  }
-
-  //Returns an item, not a singe value.
-  //Process the item elsewhere please.
-  return foundItem;
-}
-
-
-
-
-
-
-
-
 
 //Improved!
 
@@ -711,117 +644,52 @@ function instructionDecoder(receivedMessage, senderID){
     let codedInstructionArray = messageContent.split('_');
 
 
-    let queryType, queryItem, queryTerm = '';
-
-    queryTerm = codedInstructionArray[2];
-
-
-
 
 
     if(codedInstructionArray[0] === 'e'){
-      queryType = 'event';
 
-      
+      if(codedInstructionArray[1] === 'id'){
 
+        if(codedInstructionArray[3] === 'cats') {
+          //e_id_NN_cats
+          //i.e. return the categories related to that event
 
+          let foundEvent = fetchedAllEventsJSON.find(event => event.event_id === codedInstructionArray[2]);
+          let foundEventCategories = foundEvent.categories.item;
 
+          sendGenreBubbles(senderID, foundEventCategories);
 
-
-    } 
-
-
-    else if(codedInstructionArray[0] === 'c'){
-      queryType = 'category';
-    } 
-
-
-
-
-
-
-    //If it's a lookup of an ID, we can build the queryItem from that.
-    if (codedInstructionArray[1] ==='id'){
-        queryItem = queryType + '_id';
-
-        let foundItem = findItem(queryType, queryItem, queryTerm);
-
-        if(foundItem === undefined){
-          //console.log(foundItem);
-          msgToSend = 'hmm, couldn\'t find that one';
-        }
-
-
-
-
-
-
-        //If it's got a 4th paramater, it's a weird one...
-        if(codedInstructionArray[3]){
-
-          if(queryType ==='event' && codedInstructionArray[3] === 'cats'){
-
-            let foundEvent = findItem(queryType, queryItem, queryTerm);
-            let foundEventCategories = foundEvent.categories.item;
-
-            sendGenreBubbles(senderID, foundEventCategories);
           }
 
-      
-        }
+        else {
+          //e_id_NNNN
+          //i.e. just a search for a sepcific event (by ID)
+          foundItem = fetchedAllEventsJSON.find(event => event.event_id === codedInstructionArray[2]);
 
 
+          if(foundItem === undefined){
+            //console.log(foundItem);
+            sendTextMessage(senderID, 'Something went wrong. We couldn\'t find the event you were looking for');
+            }
 
-
-        else if (queryType === 'event'){
-          console.log(foundItem.event_title);
-          console.log(foundItem.place_title);
-          //console.log(foundItem.categories.item.category_id);
-
-          //Ultimately we'll be sending out an object. But for now, build a string so we can test sending.
+          else {
+            sendEventCard(senderID, foundItem);
+          }
           
-          msgToSend = foundItem.event_title + ", at " + foundItem.place_title;
-          //console.log('i should send a msg now saying ' + msgToSend);
-
-          sendEventCard(senderID, foundItem);
-
-          //console.log(foundItem);
-        }
-
-        else if (queryType === 'category'){
-          //console.log(foundItem.category_title);
-          //console.log(foundItem.category_id);
-          //so this is sending category, category_id, X
-          let foundItem = findItem(queryType, queryItem, queryTerm);
-
+          }
         }
 
 
-        //return;
-      }
+      if (codedInstructionArray[1] === 'cat'){
+          //e_cat_NN
+          let foundItems = findEventsByCategory(codedInstructionArray[2]);
+
+          let quickmsg = 'found ' + foundItems.length + ' events in category ';
+
+          sendTextMessage(senderID, quickmsg);
 
 
-
-
-    if (codedInstructionArray[0] === 'e' && codedInstructionArray[1] ==='cat'){
-
-        //This is so that we can look for events with a category!
-        queryItem = codedInstructionArray[1];
-
-        //Need  set up foundItems to know to multiple objects (in an array).
-        //let foundItems = findItem(queryType, queryItem, queryTerm);
-
-        let foundItems = findEventsByCategory(queryTerm);
-
-        let quickmsg = 'found ' + foundItems.length + ' events in category ';
-
-        sendTextMessage(senderID, quickmsg);
-
-        //Now send event Cards for that genre
-
-        //And send a bubble to let the user filter even further
-
-        var messageData = {
+          var messageData = {
               recipient: {
                 id: senderID
               },
@@ -830,41 +698,50 @@ function instructionDecoder(receivedMessage, senderID){
               quick_replies:[{
                     content_type: "text",
                     title: "Filter",
-                    payload: "e_cat_" +queryTerm+"_drillbycat" 
+                    payload: "c_id_" +codedInstructionArray[2]+"_othercats" 
                   }]
+                }
+
             }
+          callSendAPI(messageData);
+        }
+
+      } 
+
+
+    else if(codedInstructionArray[0] === 'c'){
+
+      if(codedInstructionArray[1] === 'id'){
+
+        if(codedInstructionArray[3] === 'othercats'){
+          //e_cat_NN_othercats
+          //list the other categories of the events within a specific category
 
           }
 
-        callSendAPI(messageData);
+        else {
+           foundItem = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]);
+          }
 
         }
 
+    } 
 
 
-        //console.log(foundItems);
 
 
-        //return;
-    
 
-    //FindItem ideally returns an object
-    //Goes somewhere to construct an appropriate message.
-    //For testing purposes, we're doing it from here for now.
-   // console.log('gonna send a msg...');
-   // sendTextMessage(senderID, msgToSend);
+
+
+
+
+
 
   }
 
   else {
     console.log('couldn\'t handle this request, sadly!');
   }
-
-
-  //Into this comes the message.
-  //Pick it apart, fire the appropriate query to findItem()
-
-
 
 
 
