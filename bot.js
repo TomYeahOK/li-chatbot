@@ -664,16 +664,16 @@ function instructionDecoder(receivedMessage, senderID){
         else {
           //e_id_NNNN
           //i.e. just a search for a sepcific event (by ID)
-          foundItem = fetchedAllEventsJSON.find(event => event.event_id === codedInstructionArray[2]);
+          let foundEvent = fetchedAllEventsJSON.find(event => event.event_id === codedInstructionArray[2]);
 
 
-          if(foundItem === undefined){
+          if(foundEvent === undefined){
             //console.log(foundItem);
             sendTextMessage(senderID, 'Something went wrong. We couldn\'t find the event you were looking for');
             }
 
           else {
-            sendEventCard(senderID, foundItem);
+            sendEventCard(senderID, foundEvent);
           }
           
           }
@@ -684,7 +684,9 @@ function instructionDecoder(receivedMessage, senderID){
           //e_cat_NN
           let foundItems = findEventsByCategory(codedInstructionArray[2]);
 
-          let quickmsg = 'found ' + foundItems.length + ' events in category ';
+          let catTitle = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
+
+          let quickmsg = 'There are ' + foundItems.length + ' '+ catTitle + 'events';
 
           sendTextMessage(senderID, quickmsg);
 
@@ -697,7 +699,7 @@ function instructionDecoder(receivedMessage, senderID){
               text:"Too much to choose from? filter them down more",
               quick_replies:[{
                     content_type: "text",
-                    title: "Filter",
+                    title: "Filter more",
                     payload: "c_id_" +codedInstructionArray[2]+"_othercats" 
                   }]
                 }
@@ -720,7 +722,8 @@ function instructionDecoder(receivedMessage, senderID){
           }
 
         else {
-           foundItem = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]);
+
+           let foundCategory = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]);
           }
 
         }
