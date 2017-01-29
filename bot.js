@@ -3,13 +3,6 @@
 //LI Bot
 
 //TODO List
-//Consider whether instructiondecoder and findItem need to be 2 separate functions. Just seems to be the same tests?
-//^^the rationale might be to do with writing msgs???
-//Make a fn to list the cats associated with a given event.
-//Implement a message that lists the categories - to let users drill in. This can be 'more like this' button, which lists cats as bubbles?
-
-//Sort out a multi-card maker that makes X cards, to list items in a category.
-
 
 //Listen to free dialogue
 //Make it so it can listen for genres as free text, identify them, and then list the events.
@@ -261,21 +254,35 @@ function sendTextMessage(recipientId, messageText) {
 }
 
 
-function sendGenreBubbles(recipientId, genres){
+function sendGenreBubbles(recipientId, cats, purpose, firstCat){
 
   let arrayOfGenreBubbles = [];
 
-  for (var i = genres.length - 1; i >= 0; i--) {
+  for (var i = cats.length - 1; i >= 0; i--) {
+
+    let payload = "e_cat_" + cats[i].category_id;
+
+    if(purpose == 'narrow'){
+      payload = "e_cat_" + firstCat + "_" + cats[i].category_id;
+    }
 
 
       let thisGenre = {content_type: "text",
-                    title: genres[i].category_title,
-                    payload: "e_cat_" + genres[i].category_id };
+                    title: cats[i].category_title,
+                    payload: payload };
 
       arrayOfGenreBubbles.push(thisGenre);
 
     
   }
+
+  let messageText = 'Explore more...';
+
+  if(purpose == 'narrow'){
+    messageText = 'Let\'s narrow it down...'
+  }
+
+  console.log(arrayOfGenreBubbles);
 
 
 
@@ -284,7 +291,7 @@ function sendGenreBubbles(recipientId, genres){
         id: recipientId
       },
       message:{
-      text:"Explore more...",
+      text:messageText,
       quick_replies:arrayOfGenreBubbles
     }
 
@@ -296,28 +303,123 @@ callSendAPI(messageData);
 
 
 
-function sendEventCard(recipientId, cards){
+function sendEventCard(recipientId, cards, start, catID){
 
   //Here I'll need to do some magic to check if a single object or array of objects!
 
   //Or do I need to??
 
-  let hmm = [cards]; 
+  let startCard = 0;
+  let length = 6;
 
-  console.log("hmm " + hmm.length);
+
+  if(start){
+    startCard = parseInt(start, 10);
+  }
+
+    //console.log('cards.length: '+ cards.length + ', startCard: ' + startCard+ ', length: ' + length  + ', catId: '+ catID);
+    let offset = (length + startCard);
+    let remainingEvents = (cards.length - offset);
+
+    //console.log('remaining = '+cards.length + '-' + '\(' + length + '+' + startCard + ') = ' + remainingEvents);
 
 
-  //console.log("cards.length:"+Object.keys(cards).length);
- // console.log(cards);
-  //console.log("cards.length:"+cards.length);
+  if (cards.length){
+    console.log('ooh theres more than one');
 
-  //if(cards.length === 1) {
+    let arrayOfEventCards = [];
+
+    for (var i = start; i < offset; i++) {
+
+      let imgurl = '';
+
+      if (typeof cards[i].image_thumbnail !== undefined){
+
+        imgurl = cards[i].image_thumbnail;
+        imgurl = imgurl.replace(/ /g,"%20");
+
+        }
+
+      else {
+         imgurl = "http://www.leedsinspired.co.uk/sites/all/themes/li/logo.png";
+      }
+
+      let thisEvent = {
+            title: cards[i].event_title,
+            subtitle: cards[i].place_title,
+            item_url: "https://www.google.com",               
+            image_url: imgurl,
+            buttons: [{
+              type: "postback",
+              title: "More like this...",
+              payload: "e_id_"+ cards[i].event_id+"_cats"
+            }, {
+              type: "postback",
+              title: "Re-find this (e_id_" + cards[i].event_id +")",
+              payload: "e_id_" + cards[i].event_id
+            }],
+          };
+      arrayOfEventCards.push(thisEvent);
+      };
+
+      let remainingEvents = cards.length - (length + startCard);
+
+      let showMoreCardsCard = {
+            title: 'There\'s ' + remainingEvents + ' more events in this category' ,
+            subtitle: "keep exploring...",
+            item_url: "https://www.google.com",               
+            image_url: "http://www.leedsinspired.co.uk/sites/all/themes/li/logo.png",
+            buttons: [{
+              type: "postback",
+              title: "Show more",
+              payload: "e_cat_"+ catID+"_cards_"+(startCard + length)
+            }, {
+              type: "postback",
+              title: "Narrow my search",
+              payload: "e_cat_" + catID + "_othercats"
+            }],
+          };
+
+        arrayOfEventCards.push(showMoreCardsCard);
+
+       var messageData = {
+        recipient: {
+          id: recipientId
+        },
+        message: {
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "generic",
+              elements: arrayOfEventCards
+            }
+          }
+        }
+      };  
+
+    callSendAPI(messageData);
+
+  }
+
+  else {
 
 
     let card = cards;
 
-    let imgurl = card.image_thumbnail;
-    imgurl = imgurl.replace(/ /g,"%20")
+    let imgurl = '';
+
+    if (card.image_thumbnail !== ''){
+
+        imgurl = card.image_thumbnail;
+        imgurl = imgurl.replace(/ /g,"%20");
+
+        }
+
+      else {
+        imgurl = "http://www.leedsinspired.co.uk/sites/all/themes/li/logo.png";
+      }
+
+
     var messageData = {
     recipient: {
       id: recipientId
@@ -347,82 +449,17 @@ function sendEventCard(recipientId, cards){
     }
   };  
 
-  callSendAPI(messageData);
-  //}
+    callSendAPI(messageData);
+
+}
+
+  
+
+
 
 }
 
 
-//INCOMPLETE
-function sendGenreCards(recipientId, start, end, set ){
- //This function will produce cards for all the genres.
- //If a set of  (IDs) is passed, it'll use that, otherwise it'll do all genres.
-
-  let arrayOfGenreCards = [];
-
-
-  if (!set){
-
-  for (var i = genres.length - 1; i >= 0; i--) {
-
-
-      let thisGenre = {content_type: "text",
-                    title: genres[i].category_title,
-                    payload: "e_cat_" + genres[i].category_id };
-
-      arrayOfGenreCards.push(thisGenre);
-
-    
-  }
-}
-
- var messageData = {
-    recipient: {
-      id: recipientId
-    },
-    message: {
-      attachment: {
-        type: "template",
-        payload: {
-          template_type: "generic",
-          elements: [{
-            title: "rift",
-            subtitle: "Next-generation virtual reality",
-            item_url: "https://www.oculus.com/en-us/rift/",               
-            image_url: "http://messengerdemo.parseapp.com/img/rift.png",
-            buttons: [{
-              type: "web_url",
-              url: "https://www.oculus.com/en-us/rift/",
-              title: "Open Web URL"
-            }, {
-              type: "postback",
-              title: "Call Postback",
-              payload: "Payload for first bubble",
-            }],
-          }, {
-            title: "touch",
-            subtitle: "Your Hands, Now in VR",
-            item_url: "https://www.oculus.com/en-us/touch/",               
-            image_url: "http://messengerdemo.parseapp.com/img/touch.png",
-            buttons: [{
-              type: "web_url",
-              url: "https://www.oculus.com/en-us/touch/",
-              title: "Open Web URL"
-            }, {
-              type: "postback",
-              title: "Call Postback",
-              payload: "Payload for second bubble",
-            }]
-          }]
-        }
-      }
-    }
-  };  
-
-  callSendAPI(messageData);
-
-
-}
 
 function sendGenericMessage(recipientId) {
   var messageData = {
@@ -569,53 +606,114 @@ var server = app.listen(process.env.PORT || 3000, function () {
 function findEventsByCategory(query, set) {
 
 
-
-
-  //return new Promise(function(resolve, reject){
+  return new Promise(function(resolve, reject){
 
     let matchingItems = [];
 
     //If what's received is a number, it's an ID:
 
+    let setToFilter = [];
+
     if(!set){
-      set = fetchedAllEventsJSON;
+      setToFilter = fetchedAllEventsJSON;
     }
-    
-    //if(Number.isInteger(query)){
 
-      for (var k = 0; k < set.length; k++) {
+    else{
+      for (var k = 0; k < fetchedAllEventsJSON.length; k++) {
 
-        if(set[k].categories){
-        // console.log(k+":");
-        //  console.log(fetchedAllEventsJSON[k].categories.item.length);
+        if(fetchedAllEventsJSON[k].categories){
 
-          for (var l = 0; l < set[k].categories.item.length; l++) {
-          // if (fetchedAllEventsJSON[k].categories.item[l].category_id === catID){
-          //   matchingItems.push(fetchedAllEventsJSON[k]);
-          // }
-
-          //console.log('checking: ' + k + ':' + l + '('+fetchedAllEventsJSON[k].categories.item[l].category_id.trim()+')');
-
-            if (set[k].categories.item[l].category_id.trim() == query){
-              //console.log('match:');
-              matchingItems.push(set[k]);
-              //break;
+          for (var l = 0; l < fetchedAllEventsJSON[k].categories.item.length; l++) {
+         
+            if (fetchedAllEventsJSON[k].categories.item[l].category_id.trim() == set){
+              setToFilter.push(fetchedAllEventsJSON[k]);
               }
             }
           }
         }
-      //}
+      }
 
-    //If it's a word, the easiest thing would be to go and turn it into an ID?
-    // else {
+    for (var k = 0; k < setToFilter.length; k++) {
 
-    // }
+      if(setToFilter[k].categories){
 
-  return matchingItems;
-  //resolve(matchingItems);
+        for (var l = 0; l < setToFilter[k].categories.item.length; l++) {
 
-  //}
+          if (setToFilter[k].categories.item[l].category_id.trim() == query){
+            matchingItems.push(setToFilter[k]);
+            }
+          }
+        }
+      }
+  
+
+  if(matchingItems.length === 0){
+    reject();
+  }
+
+  else {
+    resolve(matchingItems);
+
+  }
+
+  })
 }
+
+
+
+
+
+
+
+function listSetCategories(set){
+//Use when there are loads of events in a category, to let you filter it further
+//Takes in a set of events
+//Spits out an array of categories (id + name)
+//then whatever receives it can look at how many there are and decide what format of message to send it as
+
+  let foundCategories = [];
+
+  //Loop through the set
+  for (var k = 0; k < fetchedAllEventsJSON.length; k++) {
+
+    if(fetchedAllEventsJSON[k].categories){
+
+      for (var l = 0; l < fetchedAllEventsJSON[k].categories.item.length; l++) {
+
+        if (fetchedAllEventsJSON[k].categories.item[l].category_id.trim() == set){
+          //At this point we've got an event with the category.
+
+          //Now re-loop through it
+          for (var m = 0; m < fetchedAllEventsJSON[k].categories.item.length; m++) {
+
+            //don't want duplicates, so checking if it's already in the array:
+            //should be possible to replace this with es6 magic, but doesn't seem to work.
+            //e.g. [...new Set(foundCategories)];
+            let alreadycaptured = false;
+
+            for (var n = 0; n < foundCategories.length; n++) {
+
+              if(foundCategories[n].category_id == fetchedAllEventsJSON[k].categories.item[m].category_id.trim()){
+                alreadycaptured = true;
+              }
+            }
+
+            if(alreadycaptured == false){
+              foundCategories.push({category_id: fetchedAllEventsJSON[k].categories.item[m].category_id.trim(), category_title: fetchedAllEventsJSON[k].categories.item[m].category_title.trim()});
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return(foundCategories);
+}
+
+
+
+
+
 
 
 
@@ -630,12 +728,23 @@ function findEventsByCategory(query, set) {
 //find events by cat
 //e_cat_NN
 
+//list an event's categories:
+//e_id_NNNN_cats
+
+
+
+
+//Not done:
 //list the other categories of events within a category
 //e_cat_NN_othercats
 
+//keep showing more cards, starting at an offset
+//e_cat_NN_cards_N
 
-//list an event's categories:
-//e_id_NNNN_cats
+//list events with two categories
+//e_cat_NN_NN
+
+
 function instructionDecoder(receivedMessage, senderID){
 
   let msgToSend = "";
@@ -655,9 +764,6 @@ function instructionDecoder(receivedMessage, senderID){
   if(codedInstructionRegexp.test(messageContent)){
 
     let codedInstructionArray = messageContent.split('_');
-
-
-
 
     if(codedInstructionArray[0] === 'e'){
 
@@ -696,55 +802,108 @@ function instructionDecoder(receivedMessage, senderID){
       if (codedInstructionArray[1] === 'cat'){
 
 
+          //Not done:
+          //list the other categories of events within a category
+          //e_cat_NN_othercats
+
+          
+          
+
+          
 
         if(codedInstructionArray[3]){
-          //e_cat_NN_NN
-          let foundItems = findEventsByCategory(codedInstructionArray[2], codedInstructionArray[2]);
 
-          let cat1Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
-          let cat2Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
 
-          let quickmsg = 'There are ' + foundItems.length + ' events that are '+ cat1Title + ' and ' + cat2Title;
 
-          sendTextMessage(senderID, quickmsg);
+          if (codedInstructionArray[3] === 'cards'){
+            //e_cat_NN_cards_N
+            //keep showing more cards, starting at an offset
+
+            findEventsByCategory(codedInstructionArray[2])
+            .then(function(foundItems){
+
+              sendEventCard(senderID, foundItems, codedInstructionArray[4], codedInstructionArray[2]);
+            },
+
+            //Do this if findEventsByCategory promise rejects
+            function(){
+            }
+
+          )
+            
+          }
+
+          else if (codedInstructionArray[3] === 'othercats'){
+            //e_cat_NN_othercats
+            //list the other categories of events within a category
+
+            let otherCategories = listSetCategories(codedInstructionArray[2]).slice(0,5);
+
+            sendGenreBubbles(senderID, otherCategories, 'narrow', codedInstructionArray[2] );
+            
+           }
+
+
+          else if(!isNaN(codedInstructionArray[3])) {
+            console.log('it was a number');
+            //e_cat_NN_NN
+            //list events with two categories
+
+            findEventsByCategory(codedInstructionArray[3], codedInstructionArray[2])
+              .then(function(foundItems){
+
+                let cat1Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]).category_title;
+                let cat2Title = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[3]).category_title;
+
+                let quickmsg = 'There are ' + foundItems.length + ' events that are both '+ cat1Title + ' and ' + cat2Title;
+
+                sendTextMessage(senderID, quickmsg);
+
+                sendEventCard(senderID, foundItems, 0, codedInstructionArray[3]);
+
+              },
+
+              //Do this if findEventsByCategory promise rejects
+              function(){
+              }
+
+            )
+          }
 
           }
+
 
 
         else {
 
           //e_cat_NN
-          let foundItems = findEventsByCategory(codedInstructionArray[2]);
 
-          let foundCat = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]);
+          findEventsByCategory(codedInstructionArray[2])
+            .then(function(foundItems){
 
-
-          console.log(foundCat);
-
-               let catTitle = foundCat.category_title;
-
-               let quickmsg = 'There are ' + foundItems.length + ' '+ catTitle + ' events';
-
-               sendTextMessage(senderID, quickmsg);
+              let foundCat = fetchedAllCategoriesJSON.find(category => category.category_id === codedInstructionArray[2]);
 
 
-          sendEventCard(senderID, foundItems);
+             console.log(foundCat);
 
-          var messageData = {
-              recipient: {
-                id: senderID
-              },
-              message:{
-              text:"Too much to choose from? filter them down more",
-              quick_replies:[{
-                    content_type: "text",
-                    title: "Filter more",
-                    payload: "c_id_" +codedInstructionArray[2]+"_othercats" 
-                  }]
-                }
 
+
+              let catTitle = foundCat.category_title;
+
+              let quickmsg = 'There are ' + foundItems.length + ' '+ catTitle + ' events';
+
+              sendTextMessage(senderID, quickmsg);
+
+              sendEventCard(senderID, foundItems, 0, codedInstructionArray[2]);
+            },
+
+            //Do this if findEventsByCategory promise rejects
+            function(){
             }
-          callSendAPI(messageData);
+
+          )
+
+          
           }
 
         }
