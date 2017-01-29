@@ -187,7 +187,19 @@ function receivedMessage(event) {
       instructionDecoder(messageText, senderID);
     }
 
+    else if (messageText.toLowerCase() === 'hi' || 
+            messageText.toLowerCase() ==='hey' ||
+            messageText.toLowerCase()=== 'hello' ||
+            messageText.toLowerCase()=== 'yo')
+            {
+      sendTextMessage(senderID, 'Hi! There\'s tons going on in Leeds.');
+      sendTextMessage(senderID, 'I\'m here to help you find stuff. Let\'s get started...');      
+      setTimeout(function(){ listHeadlineCats(senderID); }, 2000);
+      
+    }
     else {
+      //probably not the best way to do this.
+      //turn 'FindCatFromString' into something bigger, to also search event titles?
       findCatFromString(messageText, senderID);
     }
         
@@ -253,8 +265,26 @@ function sendTextMessage(recipientId, messageText) {
   callSendAPI(messageData);
 }
 
+//This is just a functon to list some of the more popular categories. Useful for the welcome screen, for example.
+function listHeadlineCats(senderID) {
+  //film[16], music[5], visual art[1], craft[3], sport[14], comedy[27]
+  let headlineCategoryIDs = [16,5,1,3,14,27];
+
+  let headlineCategories = [];
+
+
+
+  for (var i = 0; i < headlineCategoryIDs.length; i++) {
+    let foundCat = fetchedAllCategoriesJSON.find(category => category.category_id.trim() == headlineCategoryIDs[i]);
+    headlineCategories.push(foundCat);
+  }
+  sendGenreBubbles(senderID, headlineCategories, 'welcome');
+
+}
 
 function sendGenreBubbles(recipientId, cats, purpose, firstCat){
+
+  console.log(cats);
 
   let arrayOfGenreBubbles = [];
 
@@ -281,6 +311,11 @@ function sendGenreBubbles(recipientId, cats, purpose, firstCat){
   if(purpose == 'narrow'){
     messageText = 'Let\'s narrow it down...'
   }
+
+  if(purpose == 'welcome'){
+    messageText = 'What kind of thing are you interested in?'
+  }
+
 
   console.log(arrayOfGenreBubbles);
 
@@ -371,11 +406,11 @@ function sendEventCard(recipientId, cards, start, catID){
             image_url: "http://www.leedsinspired.co.uk/sites/all/themes/li/logo.png",
             buttons: [{
               type: "postback",
-              title: "Show more",
+              title: "Show more →",
               payload: "e_cat_"+ catID+"_cards_"+(startCard + length)
             }, {
               type: "postback",
-              title: "Narrow my search",
+              title: "Narrow my search...",
               payload: "e_cat_" + catID + "_othercats"
             }],
           };
