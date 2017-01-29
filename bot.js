@@ -542,7 +542,53 @@ var server = app.listen(process.env.PORT || 3000, function () {
 
 
 
+function findCatFromString(text){
+  text = text.toLowerCase();
 
+  let foundCat = [];
+
+  let found = false;
+
+
+  //First, check if it is itself a genre:
+  if((text.substring(text.length - 1, text.length) === 's')){
+
+    if (text != "exhibitions" && text != "galleries"){
+      text = text.substring(0, text.length - 1);
+      }
+    } 
+
+  foundCat = fetchedAllCategoriesJSON.find(category => category.category_title.toLowerCase() === text);
+
+  if (foundCat != undefined) {found = true; console.log('fail test 1')}
+
+
+  //If not, check if it *contains* a genre
+  if(found == false){
+
+    console.log('running test 2')
+
+    for (var i = 0; i < fetchedAllCategoriesJSON.length; i++) {
+      let cat_title = fetchedAllCategoriesJSON[i].category_title.toLowerCase();
+      if (text.includes(cat_title)){
+          foundCat = fetchedAllCategoriesJSON[i];
+
+          found = true;
+
+          break;
+        }
+      } 
+    }
+
+    if(found == false){
+       console.log('nothing found');
+    }
+
+    else if (found == true) {
+      console.log(foundCat.category_id + ": " + foundCat.category_title);
+      return(foundCat);
+    }
+}
 
 
 
