@@ -2,22 +2,6 @@
 // + 
 //LI Bot
 
-//TODO List
-
-//Listen to free dialogue
-//Make it so it can listen for genres as free text, identify them, and then list the events.
-
-//Handle waking from sleep
-
-//Make a system for logging:
-  //Fetches
-  //Unanswerable messages
-
-//Do something with times. [unnecessary for proof of concept]
-//This would take a set of objects, and a date range, and only return those which match.
-
-
-
 //Thoughts for L.I.
 //Consider another thumbnail size optimized for msgr size... thumbnails too small, originals too big (2MB?)
 //Need urls for events!
@@ -406,11 +390,11 @@ function sendEventCard(recipientId, cards, start, catID){
             image_url: "http://www.leedsinspired.co.uk/sites/all/themes/li/logo.png",
             buttons: [{
               type: "postback",
-              title: "Show more →",
+              title: "Show more ▶",
               payload: "e_cat_"+ catID+"_cards_"+(startCard + length)
             }, {
               type: "postback",
-              title: "Narrow my search...",
+              title: "Narrow my search ▼",
               payload: "e_cat_" + catID + "_othercats"
             }],
           };
