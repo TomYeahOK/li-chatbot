@@ -11,5 +11,8 @@ Proof-of-concept of a fb bot for navigating [Leeds Inspired](http://leedsinspire
 ## Limitations of the demo
 - Does not do any filtering by date or location
 - No recording of user preferences (i.e. no ability for user to set preferences for the system to remember)
+- LI data does not contain canonical urls, therefore events can’t link to the respective pages on LI.
 
 
+### Notes
+- Currently served on infrastructure (gomix) that sleeps when inactive, therefore initial requests after sleep are laggy while the data is fetched, cached, and parsed.
