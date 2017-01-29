@@ -182,15 +182,15 @@ function receivedMessage(event) {
 
     //2 - run query when ready
 
-    switch (messageText) {
-      case 'generic':
-        sendGenericMessage(senderID);
-        break;
 
-      default:
-        //sendTextMessage(senderID, messageText);
-        instructionDecoder(messageText, senderID);
+    if (codedInstructionRegexp.test(messageText)){
+      instructionDecoder(messageText, senderID);
     }
+
+    else {
+      findCatFromString(messageText, senderID);
+    }
+        
   } else if (messageAttachments) {
     sendTextMessage(senderID, "Message with attachment received");
   }
@@ -310,7 +310,7 @@ function sendEventCard(recipientId, cards, start, catID){
   //Or do I need to??
 
   let startCard = 0;
-  let length = 6;
+  let length = 9;
 
 
   if(start){
@@ -351,12 +351,12 @@ function sendEventCard(recipientId, cards, start, catID){
             image_url: imgurl,
             buttons: [{
               type: "postback",
-              title: "More like this...",
-              payload: "e_id_"+ cards[i].event_id+"_cats"
+              title: "Read more",
+              payload: "e_id_"+ cards[i].event_id
             }, {
               type: "postback",
-              title: "Re-find this (e_id_" + cards[i].event_id +")",
-              payload: "e_id_" + cards[i].event_id
+              title: "More like this...",
+              payload: "e_id_" + cards[i].event_id+"_cats"
             }],
           };
       arrayOfEventCards.push(thisEvent);
@@ -436,12 +436,12 @@ function sendEventCard(recipientId, cards, start, catID){
             image_url: imgurl,
             buttons: [{
               type: "postback",
-              title: "More like this...",
-              payload: "e_id_"+ card.event_id+"_cats"
+              title: "Read more",
+              payload: "e_id_"+ card.event_id
             }, {
               type: "postback",
-              title: "Re-find this (e_id_" + card.event_id +")",
-              payload: "e_id_" + card.event_id
+              title: "More like this...",
+              payload: "e_id_" + card.event_id+"_cats"
             }],
           }]
         }
@@ -542,12 +542,17 @@ var server = app.listen(process.env.PORT || 3000, function () {
 
 
 
-function findCatFromString(text){
+function findCatFromString(text, senderID){
   text = text.toLowerCase();
 
   let foundCat = [];
 
   let found = false;
+
+
+  if(text.startsWith('show me ')){ 
+    text = text.substring(8);
+  };
 
 
   //First, check if it is itself a genre:
@@ -560,7 +565,11 @@ function findCatFromString(text){
 
   foundCat = fetchedAllCategoriesJSON.find(category => category.category_title.toLowerCase() === text);
 
-  if (foundCat != undefined) {found = true; console.log('fail test 1')}
+  if (foundCat != undefined) {
+    found = true; 
+    console.log('fail test 1')
+    //instructionDecoder('e_cat_' + foundCat.category_id);
+  }
 
 
   //If not, check if it *contains* a genre
@@ -586,7 +595,9 @@ function findCatFromString(text){
 
     else if (found == true) {
       console.log(foundCat.category_id + ": " + foundCat.category_title);
-      return(foundCat);
+      instructionDecoder('e_cat_' + foundCat.category_id +'', senderID);
+
+      //return(foundCat);
     }
 }
 
